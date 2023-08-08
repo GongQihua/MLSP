@@ -1,0 +1,68 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf470
+{\fonttbl\f0\froman\fcharset0 Garamond;\f1\fmodern\fcharset0 Courier;}
+{\colortbl;\red255\green255\blue255;\red9\green78\blue192;\red149\green0\blue3;}
+\margl1440\margr1440\vieww26120\viewh18120\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs80 \cf2 \expnd0\expndtw0\kerning0
+Computing the spectrogram\cf3 \
+\pard\pardeftab720\partightenfactor0
+
+\b0\fs48 \cf0 \
+\'93stft.m\'94 computes the complex spectrogram of a signal.\
+You can read a wav file into matlab as follows:\
+\pard\pardeftab720\partightenfactor0
+
+\f1 \cf0 [s,fs] = audioread('filename');\
+s = resample(s,16000,fs);\
+\pard\pardeftab720\partightenfactor0
+
+\f0 \cf0 Above, we resample the signal to a standard sampling rate for convenience. Next, we can compute the complex short-time Fourier transform of the signal, and the magnitude spectrogram from it, as follows. Here we use 2048 sample windows, which correspond to 64ms analysis windows. Adjacent frames are shifted by 256 samples, so we get 64 frames/second of signal.\
+To compute the spectrogram of a recording, e.g. the music, perform the following.\
+\pard\pardeftab720\partightenfactor0
+
+\f1 \cf0 spectrum = stft(s',2048,256,0,hann(2048));\
+music = abs(spectrum);\
+sphase = spectrum ./(abs(spectrum)+eps);\
+\pard\pardeftab720\partightenfactor0
+
+\f0 \cf0 This will result in a 1025-dimensional (rows) spectrogram, with 64 frames(columns) per second of signal.\
+Note that we are also storing the 
+\i phase
+\i0  of the original signal. We will need it later for reconstructing the signal. We explain how to do this later. The 
+\f1 eps
+\f0  in this formula ensures that the denominator does not go to zero.\
+You can compute the spectra for the notes as follows. The following script reads the directory and computes spectra for all notes in it.
+\f1 \
+notesfolder = 'notes15/';\
+listname = dir([notesfolder '*.wav']);\
+notes = [];\
+for k =1:length(listname)\
+    [s,fs] = audioread([notesfolder listname(k).name]); \
+    s = resample(s,16000,fs);\
+    spectrum = stft(s',2048,256,0,hann(2048));\
+    % Find the central frame\
+    middle = ceil(size(spectrum,2)/2);\
+    \
+    note = abs(spectrum(:,middle));\
+    % Clean up everything more than 40db below the peak\
+    note(find(note < max(note(:))/100)) = 0;\
+    note = note/norm(note); %normalize the note to unit length\
+\
+    notes = [notes,note];\
+end\
+
+\f0 The \'93notes\'94 matrix will have as many columns as there are notes (15 in our data). Each column represents a note. The notes will each be represented by a 1025 dimensional column vector.\
+\pard\pardeftab720\partightenfactor0
+
+\b\fs80 \cf2 Reconstructing a signal from a spectrogram\cf3 \
+\pard\pardeftab720\partightenfactor0
+
+\b0\fs48 \cf0 The recordings of the complete music can be read just as you read the notes. To convert it to a spectrogram, do the following. Let 
+\f1 reconstructedmagnitude
+\f0  be the reconstructed magnitude spectrogram from which you want to compute a signal. In our homework we get many variants of this. To recover the signal we will use the 
+\f1 sphase
+\f0  we computed earlier from the original signal.
+\f1 \
+reconstructedsignal = stft(reconstructedmagnitude.*sphase,2048,256,0,hann(2048));}
